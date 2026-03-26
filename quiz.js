@@ -11,10 +11,7 @@ export default class Quiz {
 
   async run() {
     const { correct, baseStats, candidates } = await this.#setupQuiz();
-    const answer = await this.#askQuestion(
-      baseStats,
-      candidates,
-    );
+    const answer = await this.#askQuestion(baseStats, candidates);
 
     if (correct.ja === answer) {
       console.log("正解!");
@@ -25,7 +22,8 @@ export default class Quiz {
 
   async #setupQuiz() {
     const selectedGeneration = await this.#selectGeneration();
-    const generationData = await this.#pokemon.fetchGeneration(selectedGeneration);
+    const generationData =
+      await this.#pokemon.fetchGeneration(selectedGeneration);
     const pokemonList = await this.#fetchPokemonList(generationData);
     const candidates = this.#selectCandidates(pokemonList);
     const correct = this.#pickRandom(candidates);
@@ -68,7 +66,7 @@ export default class Quiz {
     });
   }
 
-  async #askQuestion(baseStats, candidates, ) {
+  async #askQuestion(baseStats, candidates) {
     const question = {
       HitPoint: baseStats[0],
       Attack: baseStats[1],
