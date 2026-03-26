@@ -3,24 +3,16 @@ import Pokemon from "./pokemon.js";
 
 export default class Quiz {
   static CHOICE_COUNT = 4;
+  #pokemon;
+
+  constructor(pokemon = new Pokemon()) {
+    this.#pokemon = pokemon;
+  }
 
   async run() {
-    const pokemon = new Pokemon();
-
-    const selectedGeneration = await this.#selectGeneration();
-    const generationData = await pokemon.fetchGeneration(selectedGeneration);
-
-    const pokemonList = await this.#fetchPokemonList(pokemon, generationData);
-
-    const candidates = this.#selectCandidates(pokemonList);
-
-    const correct = candidates[Math.floor(Math.random() * candidates.length)];
-    const correctAnswerPokemonBaseStats = await pokemon.getBaseStats(
-      correct.en,
-    );
-
+    const { correct, baseStats, candidates } = await this.#setupQuiz();
     const answer = await this.#askQuestion(
-      correctAnswerPokemonBaseStats,
+      baseStats,
       candidates,
     );
 
@@ -29,6 +21,17 @@ export default class Quiz {
     } else {
       console.log(`残念！正解は${correct.ja}でした`);
     }
+  }
+
+  async #setupQuiz() {
+    const selectedGeneration = await this.#selectGeneration();
+    const generationData = await this.#pokemon.fetchGeneration(selectedGeneration);
+    const pokemonList = await this.#fetchPokemonList(generationData);
+    const candidates = this.#selectCandidates(pokemonList);
+    const correct = this.#pickRandom(candidates);
+    const baseStats = await this.#pokemon.getBaseStats(correct.en);
+
+    return { correct, candidates, baseStats };
   }
 
   async #selectGeneration() {
@@ -44,13 +47,18 @@ export default class Quiz {
       .slice(0, Quiz.CHOICE_COUNT);
   }
 
-  async #fetchPokemonList(pokemon, generationData) {
-    return await Promise.all(
+  async #fetchPokemonList(generationData) {
+    return Promise.all(
       generationData.pokemon_species.map(async (species) => {
-        const jaName = await pokemon.getJapaneseName(species.url);
+        const jaName = await this.#pokemon.getJapaneseName(species.url);
         return { ja: jaName, en: species.name };
       }),
     );
+  }
+
+  #pickRandom(candidates) {
+    const correct = candidates[Math.floor(Math.random() * candidates.length)];
+    return correct;
   }
 
   #generationSelectPrompt() {
@@ -60,14 +68,14 @@ export default class Quiz {
     });
   }
 
-  async #askQuestion(correctAnswerPokemonBaseStats, candidates) {
+  async #askQuestion(baseStats, candidates, ) {
     const question = {
-      HitPoint: correctAnswerPokemonBaseStats[0],
-      Attack: correctAnswerPokemonBaseStats[1],
-      Defense: correctAnswerPokemonBaseStats[2],
-      SpecialAttack: correctAnswerPokemonBaseStats[3],
-      SpecialDefense: correctAnswerPokemonBaseStats[4],
-      Speed: correctAnswerPokemonBaseStats[5],
+      HitPoint: baseStats[0],
+      Attack: baseStats[1],
+      Defense: baseStats[2],
+      SpecialAttack: baseStats[3],
+      SpecialDefense: baseStats[4],
+      Speed: baseStats[5],
     };
 
     const prompt = new enquirer.Select({
